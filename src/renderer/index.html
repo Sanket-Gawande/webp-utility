@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob: data:">
+  <title>WebP Utility</title>
+  <meta name="description" content="Local-first batch image optimizer. Convert and compress images to WebP, JPEG and PNG without uploading them anywhere.">
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml">
+
+  <!-- Everything is bundled locally: the app works offline and never contacts a server. -->
+  <link rel="stylesheet" href="../../node_modules/@fontsource-variable/plus-jakarta-sans/index.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Custom title bar for the frameless desktop window (hidden in a regular browser) -->
+  <header class="app-title-bar" id="title-bar">
+    <div class="title-bar-drag-zone">
+      <div class="title-bar-brand">
+        <img src="../../assets/icon.svg" alt="" width="16" height="16">
+        <span>WebP Utility</span>
+      </div>
+    </div>
+    <div class="title-bar-controls">
+      <button id="win-btn-minimize" class="title-btn" type="button" aria-label="Minimize">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+      <button id="win-btn-maximize" class="title-btn" type="button" aria-label="Maximize">
+        <svg class="icon-maximize" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+        </svg>
+        <svg class="icon-restore" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="8" width="13" height="13" rx="2"></rect>
+          <path d="M8 8V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3"></path>
+        </svg>
+      </button>
+      <button id="win-btn-close" class="title-btn close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-container">
+
+    <!-- Sidebar: global settings, statistics and batch actions -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img class="logo" src="../../assets/icon.svg" alt="" width="40" height="40">
+        <div class="brand">
+          <h1>WebP Utility</h1>
+          <span>Batch image optimizer</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h2 class="section-title">Global Settings</h2>
+
+        <div class="control-group">
+          <label for="global-format">Export format</label>
+          <div class="select-wrapper">
+            <select id="global-format">
+              <option value="image/webp">WebP (smallest)</option>
+              <option value="image/jpeg">JPEG (compatible)</option>
+              <option value="image/png">PNG (lossless)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control-group" id="global-quality-group">
+          <div class="label-val">
+            <label for="global-quality">Quality</label>
+            <output class="value-display" id="global-quality-val" for="global-quality">80%</output>
+          </div>
+          <input type="range" id="global-quality" min="5" max="100" value="80" class="slider">
+        </div>
+
+        <div class="control-group">
+          <div class="label-val">
+            <label for="global-scale">Scale dimensions</label>
+            <output class="value-display" id="global-scale-val" for="global-scale">100%</output>
+          </div>
+          <input type="range" id="global-scale" min="10" max="100" value="100" class="slider">
+        </div>
+
+        <fieldset class="control-group">
+          <legend>Max dimensions</legend>
+          <div class="dimension-inputs">
+            <div class="input-field">
+              <input type="number" id="global-max-width" placeholder="Auto" min="1" max="16384" step="1" class="number-input" aria-label="Maximum width in pixels">
+              <span aria-hidden="true">W px</span>
+            </div>
+            <div class="input-field">
+              <input type="number" id="global-max-height" placeholder="Auto" min="1" max="16384" step="1" class="number-input" aria-label="Maximum height in pixels">
+              <span aria-hidden="true">H px</span>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="control-group">
+          <label for="global-suffix">Filename suffix</label>
+          <input type="text" id="global-suffix" placeholder="none" value="-opt" maxlength="64" class="text-input" spellcheck="false">
+        </div>
+
+        <div class="control-group toggle-group">
+          <label class="toggle-container" title="When re-encoding in the same format and size would make a file bigger, export the original instead.">
+            <input type="checkbox" id="keep-smaller" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Keep original if it's smaller</span>
+          </label>
+          <label class="toggle-container">
+            <input type="checkbox" id="save-settings" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Remember settings</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="sidebar-actions">
+        <div class="batch-stats">
+          <div class="stat-row">
+            <span>Images</span>
+            <span id="stat-count" class="stat-val">0</span>
+          </div>
+          <div class="stat-row">
+            <span>Original size</span>
+            <span id="stat-orig-size" class="stat-val">0 B</span>
+          </div>
+          <div class="stat-row">
+            <span>Optimized size</span>
+            <span id="stat-comp-size" class="stat-val">0 B</span>
+          </div>
+          <div class="stat-row savings">
+            <span>Total savings</span>
+            <span id="stat-savings" class="stat-val">0%</span>
+          </div>
+        </div>
+
+        <button id="btn-export-all" class="btn btn-primary" type="button" disabled>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Export All (ZIP)
+        </button>
+
+        <div class="grid-actions-dual">
+          <button id="btn-save-folder" class="btn btn-secondary" type="button" title="Save the selected images into a folder" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Save Selected
+          </button>
+          <button id="btn-export-selected" class="btn btn-secondary" type="button" title="Download the selected images as a ZIP archive" disabled>
+            ZIP Selected
+          </button>
+        </div>
+
+        <button id="btn-clear-all" class="btn btn-danger" type="button" disabled>Clear Batch</button>
+      </div>
+    </aside>
+
+    <!-- Workspace -->
+    <main class="main-content" id="main-content">
+
+      <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Add images: drop files or folders here, or press Enter to browse">
+        <div class="drop-zone-content">
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </div>
+          <h3>Optimizing starts here</h3>
+          <p>Drop images or folders here, click to browse, or paste with <kbd>Ctrl</kbd> + <kbd>V</kbd></p>
+          <span class="file-limits">JPEG · PNG · WebP · AVIF · GIF · SVG · BMP · ICO</span>
+        </div>
+      </div>
+      <input type="file" id="file-input" multiple accept="image/*,.webp,.avif,.svg,.ico" class="file-input-hidden" tabindex="-1" aria-hidden="true">
+
+      <div id="grid-view" class="grid-view hidden">
+        <div class="grid-toolbar">
+          <div class="toolbar-left">
+            <label class="checkbox-container">
+              <input type="checkbox" id="select-all-checkbox">
+              <span class="checkmark"></span>
+              <span class="select-label">Select all</span>
+            </label>
+            <span id="selected-count-badge" class="selected-badge">0 selected</span>
+            <span id="queue-status" class="queue-status hidden" role="status">
+              <span class="mini-spinner" aria-hidden="true"></span>
+              <span id="queue-status-text">Optimizing…</span>
+            </span>
+          </div>
+          <div class="toolbar-right">
+            <button id="btn-remove-selected" class="btn-text danger" type="button" disabled>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Remove selected
+            </button>
+            <button id="btn-add-more" class="btn-text" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add images
+            </button>
+          </div>
+        </div>
+
+        <div id="cards-grid" class="cards-grid"></div>
+      </div>
+
+      <div class="drop-overlay" aria-hidden="true">
+        <span>Drop to add images</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- Inspector: local settings + before/after comparison -->
+  <div id="inspect-modal" class="modal-overlay hidden">
+    <div class="modal-wrapper" role="dialog" aria-modal="true" aria-labelledby="modal-filename">
+
+      <header class="modal-header">
+        <div class="modal-title-group">
+          <h2 id="modal-filename">image.webp</h2>
+          <span id="modal-dimensions-info"></span>
+        </div>
+        <button id="btn-modal-close" class="btn-icon" type="button" aria-label="Close (Esc)">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <div class="modal-settings">
+          <h3>Image Settings</h3>
+
+          <div class="control-group rename-group">
+            <label for="local-filename">File name</label>
+            <input type="text" id="local-filename" class="text-input" placeholder="Enter a name" spellcheck="false">
+          </div>
+
+          <div class="control-group toggle-group">
+            <label class="toggle-container">
+              <input type="checkbox" id="local-override-toggle">
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Use custom settings for this image</span>
+            </label>
+          </div>
+
+          <fieldset id="local-settings-panel" class="local-settings-panel" disabled>
+            <div class="control-group">
+              <label for="local-format">Format</label>
+              <div class="select-wrapper">
+                <select id="local-format">
+                  <option value="image/webp">WebP (smallest)</option>
+                  <option value="image/jpeg">JPEG (compatible)</option>
+                  <option value="image/png">PNG (lossless)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="control-group" id="local-quality-group">
+              <div class="label-val">
+                <label for="local-quality">Quality</label>
+                <output class="value-display" id="local-quality-val" for="local-quality">80%</output>
+              </div>
+              <input type="range" id="local-quality" min="5" max="100" value="80" class="slider">
+            </div>
+
+            <div class="control-group">
+              <div class="label-val">
+                <label for="local-scale">Scale</label>
+                <output class="value-display" id="local-scale-val" for="local-scale">100%</output>
+              </div>
+              <input type="range" id="local-scale" min="10" max="100" value="100" class="slider">
+            </div>
+
+            <div class="control-group">
+              <span class="control-label">Max dimensions</span>
+              <div class="dimension-inputs">
+                <div class="input-field">
+                  <input type="number" id="local-max-width" placeholder="Auto" min="1" max="16384" step="1" class="number-input" aria-label="Maximum width in pixels">
+                  <span aria-hidden="true">W px</span>
+                </div>
+                <div class="input-field">
+                  <input type="number" id="local-max-height" placeholder="Auto" min="1" max="16384" step="1" class="number-input" aria-label="Maximum height in pixels">
+                  <span aria-hidden="true">H px</span>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="modal-stats-card">
+            <div class="mstat-row">
+              <span>Original</span>
+              <span id="mstat-original-size" class="mstat-val">0 B</span>
+            </div>
+            <div class="mstat-row">
+              <span>Optimized</span>
+              <span id="mstat-optimized-size" class="mstat-val">0 B</span>
+            </div>
+            <div class="mstat-row savings">
+              <span>Change</span>
+              <span id="mstat-savings" class="mstat-val">0%</span>
+            </div>
+            <p id="mstat-note" class="mstat-note hidden"></p>
+          </div>
+
+          <div class="modal-save-actions">
+            <button id="btn-modal-download" class="btn btn-primary" type="button">Download</button>
+            <button id="btn-modal-save-folder" class="btn btn-secondary" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              Save to Folder
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-viewer">
+          <div class="viewer-toolbar">
+            <div class="toolbar-pill">
+              <button id="btn-zoom-out" class="btn-zoom-icon" type="button" title="Zoom out (−)" aria-label="Zoom out">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+              <span id="zoom-badge" class="zoom-value">100%</span>
+              <button id="btn-zoom-in" class="btn-zoom-icon" type="button" title="Zoom in (+)" aria-label="Zoom in">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+            <button id="btn-zoom-fit" class="btn-pill-text" type="button" title="Fit to screen (0)">Fit</button>
+            <button id="btn-zoom-reset" class="btn-pill-text" type="button" title="Actual size (1)">1:1</button>
+
+            <div class="comparison-labels">
+              <span class="label-orig">Original</span>
+              <span class="label-opt">Optimized</span>
+            </div>
+          </div>
+
+          <div id="viewer-viewport" class="viewer-viewport">
+            <div id="zoom-container" class="zoom-container">
+              <div class="image-layer">
+                <img id="view-img-original" alt="Original image" draggable="false">
+              </div>
+              <div id="layer-optimized-wrapper" class="image-layer layer-optimized">
+                <img id="view-img-optimized" alt="Optimized image" draggable="false">
+              </div>
+            </div>
+
+            <div id="comparison-slider-handle" class="comparison-slider-handle" role="slider" tabindex="0"
+                 aria-label="Comparison divider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+              <div class="slider-divider"></div>
+              <div class="slider-button">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <polyline points="8 5 1 12 8 19"></polyline>
+                  <polyline points="16 5 23 12 16 19"></polyline>
+                </svg>
+              </div>
+            </div>
+
+            <div class="viewer-instructions">
+              Drag the divider to compare · drag to pan · scroll to zoom
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation dialog -->
+  <div id="confirm-dialog" class="modal-overlay dialog-overlay hidden">
+    <div class="dialog-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+      <h3 id="confirm-title"></h3>
+      <p id="confirm-message"></p>
+      <div id="confirm-actions" class="dialog-actions"></div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
+  <div id="global-loader" class="loader-overlay hidden" role="alert" aria-busy="true">
+    <div class="loader-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <h3 id="loader-title">Working…</h3>
+      <p id="loader-desc"></p>
+    </div>
+  </div>
+
+  <script src="../../node_modules/jszip/dist/jszip.min.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/compressor.js"></script>
+  <script src="js/viewer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

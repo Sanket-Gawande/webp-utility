@@ -1,0 +1,83 @@
+{
+  "name": "webp-utility",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Local-first desktop app for batch converting and compressing images to WebP, JPEG and PNG.",
+  "keywords": [
+    "webp",
+    "image-optimizer",
+    "image-compression",
+    "electron"
+  ],
+  "homepage": "https://github.com/Sanket-Gawande/webp-utility#readme",
+  "bugs": {
+    "url": "https://github.com/Sanket-Gawande/webp-utility/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sanket-Gawande/webp-utility.git"
+  },
+  "license": "MIT",
+  "author": "Sanket Gawande",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "icons": "node scripts/generate-icons.mjs",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "jszip": "^3.10.2"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.webputility.app",
+    "productName": "WebP Utility",
+    "copyright": "Copyright © 2026 Sanket Gawande",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WebP Utility",
+      "uninstallDisplayName": "WebP Utility",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "WebP-Utility-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Graphics"
+    }
+  }
+}

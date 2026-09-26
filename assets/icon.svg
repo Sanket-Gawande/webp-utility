@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b2e34"/>
+      <stop offset="1" stop-color="#131416"/>
+    </linearGradient>
+    <linearGradient id="photo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#abd1bb"/>
+      <stop offset="1" stop-color="#78a38b"/>
+    </linearGradient>
+    <clipPath id="photo-clip">
+      <rect x="212" y="302" width="600" height="420" rx="72"/>
+    </clipPath>
+  </defs>
+
+  <!-- App tile -->
+  <rect x="48" y="48" width="928" height="928" rx="208" fill="url(#tile)"/>
+  <rect x="50" y="50" width="924" height="924" rx="206" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="4"/>
+
+  <!-- Photo being compressed -->
+  <rect x="212" y="302" width="600" height="420" rx="72" fill="url(#photo)"/>
+  <g clip-path="url(#photo-clip)">
+    <circle cx="664" cy="424" r="50" fill="#f3ede4"/>
+    <path d="M212 722 L398 520 Q412 505 426 520 L540 644 L602 578 Q616 563 630 578 L812 722 Z" fill="#1d2b24"/>
+  </g>
+
+  <!-- Compression chevrons -->
+  <g fill="none" stroke="#e6dfd5" stroke-width="64" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="412,150 512,230 612,150"/>
+    <polyline points="412,874 512,794 612,874"/>
+  </g>
+</svg>
